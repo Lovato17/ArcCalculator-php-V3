@@ -366,31 +366,126 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
     .markdown-content strong { font-weight: 700; }
     .markdown-content code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
 
-    /* ===== MOBILE RESPONSIVE ===== */
+    /* ===== RESPONSIVE LAYOUT ===== */
     .adv-main-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 480px;
       gap: 1.5rem;
       align-items: start;
     }
-    @media (max-width: 960px) {
-      .adv-main-grid { grid-template-columns: 1fr; }
-      .chat-wrap { position: static !important; }
-      .chat-card { height: 520px !important; max-height: 520px !important; }
+
+    /* Tablet: coluna única */
+    @media (max-width: 1024px) {
+      .adv-main-grid {
+        grid-template-columns: 1fr !important;
+      }
+      .chat-wrap {
+        position: static !important;
+      }
+      .chat-card {
+        height: 520px !important;
+        max-height: 520px !important;
+      }
     }
-    @media (max-width: 640px) {
-      #app { padding: 0.75rem !important; }
-      header { padding-bottom: 1rem !important; margin-bottom: 1.25rem !important; }
-      nav { flex-wrap: wrap; gap: 10px; justify-content: center; }
-      .adv-row { grid-template-columns: 1fr; }
-      .adv-form-body { padding: 14px; gap: 14px; }
-      .adv-form-header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
-      .adv-form-actions { padding: 10px 14px 14px; }
-      .adv-form-title { font-size: 13px; }
-      .prompt-card { padding: 8px 10px; }
-      .prompt-card-text { font-size: 0.68rem; }
-      .advisor-table th, .advisor-table td { padding: 8px 8px; font-size: 0.76rem; white-space: normal; }
-      .chat-card { height: 460px !important; max-height: 460px !important; }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      #app {
+        padding: 0.75rem !important;
+        max-width: 100% !important;
+      }
+      header {
+        padding-bottom: 1rem !important;
+        margin-bottom: 1rem !important;
+        gap: 0.75rem !important;
+      }
+      header h1 {
+        font-size: 1.25rem !important;
+      }
+      header p {
+        font-size: 0.75rem !important;
+      }
+      header .flex.items-center.gap-6 {
+        width: 100%;
+      }
+      header nav {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        justify-content: center !important;
+        width: 100%;
+      }
+      header nav a {
+        font-size: 0.78rem !important;
+      }
+      header img {
+        height: 2rem !important;
+      }
+
+      /* Form */
+      .adv-form { border-radius: 12px; }
+      .adv-row { grid-template-columns: 1fr !important; }
+      .adv-form-body { padding: 14px !important; gap: 14px !important; }
+      .adv-form-header { padding: 10px 14px !important; flex-wrap: wrap !important; gap: 8px !important; }
+      .adv-form-actions { padding: 10px 14px 14px !important; flex-wrap: wrap; }
+      .adv-form-title { font-size: 13px !important; }
+      .adv-btn-submit { font-size: 13px !important; height: 42px !important; }
+      .adv-btn-pdf { height: 42px !important; }
+      .adv-input { height: 38px !important; font-size: 13px !important; }
+      .adv-segmented { height: 38px !important; }
+      .adv-seg-text { font-size: 12px !important; }
+      .adv-label { font-size: 11.5px !important; }
+
+      /* Results table */
+      .bg-white.rounded-xl.shadow-lg.border.border-slate-200.p-6 {
+        padding: 12px !important;
+        border-radius: 12px !important;
+      }
+      .advisor-table { min-width: 600px; }
+      .advisor-table th {
+        padding: 8px 6px !important;
+        font-size: 0.7rem !important;
+      }
+      .advisor-table td {
+        padding: 8px 6px !important;
+        font-size: 0.78rem !important;
+      }
+
+      /* Chat */
+      .chat-card {
+        height: 450px !important;
+        max-height: 450px !important;
+        border-radius: 12px !important;
+      }
+      .chat-header { padding: 12px 14px !important; }
+      .chat-messages { padding: 14px !important; gap: 12px !important; }
+      .chat-input-area { padding: 10px 12px 12px !important; }
+      .chat-bubble-assistant,
+      .chat-bubble-user {
+        padding: 10px 14px !important;
+        font-size: 0.82rem !important;
+      }
+      .prompt-grid {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+      }
+      .prompt-card { padding: 8px 10px !important; }
+      .prompt-card-text { font-size: 0.68rem !important; }
+      .prompt-card-icon { font-size: 0.95rem !important; }
+
+      /* Disclaimer */
+      .mt-6.p-4.bg-slate-50 { padding: 10px !important; }
+      .mt-6.p-4.bg-slate-50 h3 { font-size: 0.78rem !important; }
+      .mt-6.p-4.bg-slate-50 li { font-size: 0.7rem !important; }
+    }
+
+    /* Small phones */
+    @media (max-width: 400px) {
+      #app { padding: 0.5rem !important; }
+      header h1 { font-size: 1.1rem !important; }
+      .adv-form-body { padding: 10px !important; }
+      .adv-form-header { padding: 8px 10px !important; }
+      .adv-btn-submit { font-size: 12px !important; gap: 4px !important; }
+      .chat-card { height: 400px !important; max-height: 400px !important; }
     }
   </style>
 </head>

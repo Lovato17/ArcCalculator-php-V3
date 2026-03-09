@@ -85,17 +85,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_prices'])) {
 
         /* ===== MOBILE RESPONSIVE ===== */
         @media (max-width: 768px) {
+          .container {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            max-width: 100% !important;
+          }
           .sku-table { min-width: 520px; }
-          .sku-table thead th { font-size: 0.7rem; padding: 10px 10px; }
-          .sku-table input[type="number"] { padding: 8px 10px; font-size: 0.82rem; }
-          .model-badge { font-size: 0.62rem; padding: 3px 7px; gap: 4px; }
-          .unit-label { font-size: 0.62rem; white-space: normal; }
-          .container { padding-left: 1rem; padding-right: 1rem; }
+          .sku-table thead th { font-size: 0.7rem !important; padding: 10px 8px !important; }
+          .sku-table input[type="number"] { padding: 8px 8px !important; font-size: 0.82rem !important; }
+          .model-badge { font-size: 0.6rem !important; padding: 3px 6px !important; gap: 3px !important; }
+          .model-badge svg { display: none; }
+          .unit-label { font-size: 0.6rem !important; white-space: normal !important; }
+          header h1 { font-size: 1.25rem !important; }
+          header p { font-size: 0.75rem !important; }
+          header .flex.items-center.gap-4 > div:first-child {
+            width: 2.5rem !important;
+            height: 2.5rem !important;
+          }
+          header .flex.items-center.gap-3 {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          .bg-white.rounded-2xl { border-radius: 12px !important; }
         }
         @media (max-width: 640px) {
-          .save-btn-wrap { justify-content: stretch !important; }
-          .save-btn-wrap button { width: 100%; justify-content: center; }
-          h1 { font-size: 1.25rem !important; }
+          .container {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+          }
+          .save-btn-wrap {
+            justify-content: stretch !important;
+          }
+          .save-btn-wrap button {
+            width: 100% !important;
+            justify-content: center !important;
+          }
+          header {
+            gap: 0.75rem !important;
+            padding-bottom: 1rem !important;
+            margin-bottom: 1.25rem !important;
+          }
+          header .flex.items-center.gap-4 {
+            gap: 0.5rem !important;
+          }
+        }
+        @media (max-width: 400px) {
+          .sku-table { min-width: 460px; }
+          .sku-table thead th { font-size: 0.65rem !important; padding: 8px 6px !important; }
+          .sku-table input[type="number"] { font-size: 0.78rem !important; padding: 6px !important; }
+          header h1 { font-size: 1.1rem !important; }
         }
     </style>
 </head>
