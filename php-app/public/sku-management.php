@@ -82,6 +82,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_prices'])) {
         .edition-std { color: #475569; font-weight: 500; }
         .edition-ent { color: #1e293b; font-weight: 600; }
         .unit-label { font-size: 0.72rem; color: #94a3b8; font-weight: 500; white-space: nowrap; }
+
+        /* ===== MOBILE RESPONSIVE ===== */
+        @media (max-width: 768px) {
+          .sku-table { min-width: 520px; }
+          .sku-table thead th { font-size: 0.7rem; padding: 10px 10px; }
+          .sku-table input[type="number"] { padding: 8px 10px; font-size: 0.82rem; }
+          .model-badge { font-size: 0.62rem; padding: 3px 7px; gap: 4px; }
+          .unit-label { font-size: 0.62rem; white-space: normal; }
+          .container { padding-left: 1rem; padding-right: 1rem; }
+        }
+        @media (max-width: 640px) {
+          .save-btn-wrap { justify-content: stretch !important; }
+          .save-btn-wrap button { width: 100%; justify-content: center; }
+          h1 { font-size: 1.25rem !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900">
@@ -119,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_prices'])) {
             <input type="hidden" name="save_prices" value="1">
 
             <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
                 <table class="sku-table">
                     <thead>
                         <tr>
@@ -263,9 +279,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_prices'])) {
                         </tr>
                     </tbody>
                 </table>
+                </div><!-- /overflow-x-auto -->
             </div>
 
-            <div class="flex justify-end pt-6 mt-6 mb-10">
+            <div class="save-btn-wrap flex justify-end pt-6 mt-6 mb-10">
                 <button type="submit" class="px-8 py-3 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all" style="background:linear-gradient(135deg,#002829,#005758);">
                     <span class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">

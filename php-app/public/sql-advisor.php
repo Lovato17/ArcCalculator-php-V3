@@ -365,6 +365,33 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
 
     .markdown-content strong { font-weight: 700; }
     .markdown-content code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.85em; }
+
+    /* ===== MOBILE RESPONSIVE ===== */
+    .adv-main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 480px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+    @media (max-width: 960px) {
+      .adv-main-grid { grid-template-columns: 1fr; }
+      .chat-wrap { position: static !important; }
+      .chat-card { height: 520px !important; max-height: 520px !important; }
+    }
+    @media (max-width: 640px) {
+      #app { padding: 0.75rem !important; }
+      header { padding-bottom: 1rem !important; margin-bottom: 1.25rem !important; }
+      nav { flex-wrap: wrap; gap: 10px; justify-content: center; }
+      .adv-row { grid-template-columns: 1fr; }
+      .adv-form-body { padding: 14px; gap: 14px; }
+      .adv-form-header { padding: 12px 14px; flex-wrap: wrap; gap: 8px; }
+      .adv-form-actions { padding: 10px 14px 14px; }
+      .adv-form-title { font-size: 13px; }
+      .prompt-card { padding: 8px 10px; }
+      .prompt-card-text { font-size: 0.68rem; }
+      .advisor-table th, .advisor-table td { padding: 8px 8px; font-size: 0.76rem; white-space: normal; }
+      .chat-card { height: 460px !important; max-height: 460px !important; }
+    }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen font-sans text-slate-900">
@@ -391,7 +418,7 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
     </header>
 
     <!-- Layout 2 colunas -->
-    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 480px; gap: 1.5rem; align-items: start;">
+    <div class="adv-main-grid">
 
       <!-- COLUNA ESQUERDA: Formulário + Resultados -->
       <div>
