@@ -1,0 +1,22 @@
+# Use this YAML in your workflow file for each job
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    # Use this YAML in your workflow file for each job
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check PHP version
+        run: php -v
+
+      - name: Run tests
+        run: echo "Add your tests here"
