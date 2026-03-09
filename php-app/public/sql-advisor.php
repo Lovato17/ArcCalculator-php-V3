@@ -28,7 +28,33 @@ if (!isset($_SESSION['advisor'])) {
 
 $advisorResult = null;
 
-// Processar formulário
+// ====== AJAX REQUEST: retorna JSON sem recarregar a página ======
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calculate_advisor']) && !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+    header('Content-Type: application/json; charset=utf-8');
+
+    $advisorParams = [
+        'clientName'        => filter_input(INPUT_POST, 'clientName', FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?: '',
+        'vendorName'        => filter_input(INPUT_POST, 'vendorName', FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?: '',
+        'vCores'            => filter_input(INPUT_POST, 'vCores', FILTER_VALIDATE_INT) ?: 4,
+        'edition'           => filter_input(INPUT_POST, 'edition', FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?: 'Standard',
+        'hoursPerMonth'     => filter_input(INPUT_POST, 'hoursPerMonth', FILTER_VALIDATE_INT) ?: 730,
+        'currency'          => filter_input(INPUT_POST, 'currency', FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?: 'USD',
+        'amortizationYears' => 3,
+        'hasSA'             => isset($_POST['hasSA']),
+    ];
+    if ($advisorParams['vCores'] < 4) $advisorParams['vCores'] = 4;
+
+    $_SESSION['advisor'] = $advisorParams;
+
+    $advisor = new LicensingAdvisor($_SESSION['prices']);
+    $result = $advisor->compareAll($advisorParams);
+    $_SESSION['advisorResult'] = $result;
+
+    echo json_encode($result);
+    exit;
+}
+
+// Processar formulário (fallback sem JS)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calculate_advisor'])) {
     $advisorParams = [
         'clientName'        => filter_input(INPUT_POST, 'clientName', FILTER_SANITIZE_FULL_SPECIAL_CHARS) ?: '',
@@ -41,15 +67,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['calculate_advisor']))
         'hasSA'             => isset($_POST['hasSA']),
     ];
 
-    // Validar mínimo de vCores
     if ($advisorParams['vCores'] < 4) {
         $advisorParams['vCores'] = 4;
     }
 
-    // Salvar na sessão
     $_SESSION['advisor'] = $advisorParams;
 
-    // Calcular
     $advisor = new LicensingAdvisor($_SESSION['prices']);
     $advisorResult = $advisor->compareAll($advisorParams);
     $_SESSION['advisorResult'] = $advisorResult;
@@ -85,6 +108,7 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
     .chat-messages::-webkit-scrollbar-track { background: transparent; }
     .msg-container { display: flex; flex-direction: column; max-width: 95%; animation: msgIn 0.25s ease-out; }
     @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     .msg-user { align-self: flex-end; align-items: flex-end; }
     .msg-assistant { align-self: flex-start; align-items: flex-start; }
     .chat-bubble-assistant { background: #fff; border: 1px solid #e8edf3; border-radius: 4px 16px 16px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); padding: 14px 18px; font-size: 0.875rem; color: #1e293b; line-height: 1.7; }
@@ -607,137 +631,20 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
 
           <!-- Actions -->
           <div class="adv-form-actions">
-            <button type="submit" class="adv-btn-submit">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-              Executar Comparativo
+            <input type="hidden" name="calculate_advisor" value="1">
+            <button type="submit" class="adv-btn-submit" id="btnSubmitAdvisor">
+              <svg class="adv-btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              <span class="adv-btn-label">Executar Comparativo</span>
             </button>
-            <?php if ($advisorResult): ?>
-            <button type="button" id="btn-generate-advisor-pdf" class="adv-btn-pdf">
+            <button type="button" id="btn-generate-advisor-pdf" class="adv-btn-pdf" style="display:none;">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
               PDF
             </button>
-            <?php endif; ?>
           </div>
         </form>
 
-        <!-- Tabela de Resultados -->
-        <?php if ($advisorResult): ?>
-        <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-6">
-          <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" style="color:#005758;">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
-            </svg>
-            Comparativo de Custos — <?php echo htmlspecialchars($advisorResult['params']['edition']); ?> (<?php echo (int) $advisorResult['params']['vCores']; ?> vCores)
-          </h2>
-
-          <div class="overflow-x-auto">
-            <table class="w-full advisor-table">
-              <thead>
-                <tr class="border-b-2 border-slate-200">
-                  <th class="text-slate-600">Modelo</th>
-                  <th class="text-slate-600 text-center">Packs</th>
-                  <th class="text-slate-600 text-right">Preço Unit.</th>
-                  <th class="text-slate-600 text-right">Custo Mensal</th>
-                  <th class="text-slate-600 text-right">Custo Anual</th>
-                  <th class="text-slate-600 text-right">Total 3 Anos</th>
-                  <th class="text-slate-600 text-right">Economia vs ARC</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php
-                  $cs = ($advisorResult['params']['currency'] === 'BRL') ? 'R$' : '$';
-
-                  // Azure ARC sempre primeiro
-                  $arcData = $advisorResult['arc'];
-                  $arcUnitLabel = $cs . ' ' . number_format($arcData['unitPrice'] ?? 0, 4, ',', '.') . ' /hora';
-                ?>
-                <tr class="recommended-row" style="border-radius: 8px;">
-                  <td class="font-bold">
-                    <?php echo htmlspecialchars($arcData['label']); ?>
-                  </td>
-                  <td class="text-center">—</td>
-                  <td class="text-right text-xs opacity-90"><?php echo $arcUnitLabel; ?></td>
-                  <td class="text-right font-semibold"><?php echo $cs . ' ' . number_format($arcData['monthly'], 2, ',', '.'); ?></td>
-                  <td class="text-right"><?php echo $cs . ' ' . number_format($arcData['annual'], 2, ',', '.'); ?></td>
-                  <td class="text-right"><?php echo $cs . ' ' . number_format($arcData['total3y'], 2, ',', '.'); ?></td>
-                  <td class="text-right">—</td>
-                </tr>
-                <?php
-                  // Demais modelos ordenados do mais barato ao mais caro
-                  $others = [
-                    'spla'      => $advisorResult['spla'],
-                    'csp1y'     => $advisorResult['csp1y'],
-                    'csp3y'     => $advisorResult['csp3y'],
-                    'perpetual' => $advisorResult['perpetual'],
-                    'ovs'       => $advisorResult['ovs'],
-                  ];
-                  uasort($others, function ($a, $b) {
-                      return $a['monthly'] <=> $b['monthly'];
-                  });
-
-                  $savingsMap = [
-                    'spla'      => 'vsSpla',
-                    'csp1y'     => 'vsCsp1y',
-                    'csp3y'     => 'vsCsp3y',
-                    'perpetual' => 'vsPerpetual',
-                    'ovs'       => 'vsOvs',
-                  ];
-
-                  $rowIdx = 0;
-                  foreach ($others as $key => $model):
-                    $sk = $savingsMap[$key];
-                    $sav = $advisorResult['savings'][$sk] ?? ['monthly' => 0, 'pct' => 0];
-                    $rowBg = ($rowIdx % 2 === 0) ? 'background:#f8fafc;' : '';
-                    $rowIdx++;
-                    
-                    $unitDesc = $cs . ' ' . number_format($model['unitPrice'] ?? 0, 2, ',', '.') . ' /pack';
-                ?>
-                <tr style="<?php echo $rowBg; ?> border-bottom: 1px solid #e2e8f0;">
-                  <td class="font-medium text-slate-800"><?php echo htmlspecialchars($model['label']); ?></td>
-                  <td class="text-center"><?php echo (int) $model['packs']; ?></td>
-                  <td class="text-right text-xs text-slate-500"><?php echo $unitDesc; ?></td>
-                  <td class="text-right"><?php echo $cs . ' ' . number_format($model['monthly'], 2, ',', '.'); ?></td>
-                  <td class="text-right"><?php echo $cs . ' ' . number_format($model['annual'], 2, ',', '.'); ?></td>
-                  <td class="text-right"><?php echo $cs . ' ' . number_format($model['total3y'], 2, ',', '.'); ?></td>
-                  <td class="text-right">
-                    <?php if ($sav['pct'] > 0): ?>
-                      <span class="savings-positive">+<?php echo $cs . ' ' . number_format($sav['monthly'], 2, ',', '.'); ?>/mês (<?php echo number_format($sav['pct'], 1, ',', '.'); ?>%)</span>
-                    <?php elseif ($sav['pct'] < 0): ?>
-                      <span class="savings-negative"><?php echo $cs . ' ' . number_format($sav['monthly'], 2, ',', '.'); ?>/mês (<?php echo number_format($sav['pct'], 1, ',', '.'); ?>%)</span>
-                    <?php else: ?>
-                      <span class="text-slate-400">0%</span>
-                    <?php endif; ?>
-                  </td>
-                </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
-
-          <?php if ($advisorResult['bestModel'] !== 'arc'): ?>
-          <div class="mt-4 p-3 rounded-lg" style="background:#fef3c7; border:1px solid #fcd34d;">
-            <p class="text-sm text-amber-800">
-              <strong>Nota:</strong> Para este cenário, o modelo mais econômico é
-              <strong><?php echo htmlspecialchars($advisorResult[$advisorResult['bestModel']]['label']); ?></strong>.
-              Contudo, o Azure ARC oferece benefícios adicionais como virtualização ilimitada, sem compromisso e gestão via portal Azure.
-            </p>
-          </div>
-          <?php endif; ?>
-
-          <!-- Disclaimer de Faturamento -->
-          <div class="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg shadow-sm">
-            <h3 class="text-sm font-bold text-teal-800 mb-2 border-b border-teal-100 pb-1">Dinâmica de Faturamento por Modelo (Atenção Comercial)</h3>
-            <ul class="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
-              <li><strong class="text-slate-800">Azure ARC (Recomendado):</strong> Cobrado mensalmente (Pay-As-You-Go) apenas pelos vCores consumidos por hora.</li>
-              <li><strong class="text-slate-800">SPLA:</strong> Faturamento pós-pago mensal recorrente. Licenciamento mínimo exigido em pacotes de 2 cores.</li>
-              <li><strong class="text-slate-800">CSP (1 e 3 Anos):</strong> Faturamento total antecipado (upfront) pelo período de contrato. Requer pacotes de 2 cores.</li>
-              <li><strong class="text-slate-800">Perpétuo + SA:</strong> Aquisição de licença definitiva (CapEx) com renovação anual do contrato de Software Assurance.</li>
-              <li><strong class="text-slate-800">OVS:</strong> Assinatura padronizada de valor anualizado (OpEx) que já inclui benefícios de Software Assurance.</li>
-            </ul>
-          </div>
-
-        </div>
-        <?php endif; ?>
+        <!-- Container para Resultados (renderizado via JS) -->
+        <div id="advisorResults"></div>
       </div>
 
       <!-- COLUNA DIREITA: Chat IA -->
@@ -830,19 +737,167 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
 
     </div><!-- /grid -->
 
-  <!-- Dados para JS -->
-  <?php if ($advisorResult): ?>
-  <script>
-    window.advisorData = <?php echo json_encode($advisorResult); ?>;
-  </script>
-  <?php endif; ?>
-
   <!-- jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" async></script>
   <script src="js/app.js?v=<?php echo time(); ?>"></script>
 
   <script>
-    // ==================== CHAT LATERAL ====================
+    // ==================== ADVISOR AJAX ====================
+    function fmtNum(v, decimals) {
+      return Number(v).toFixed(decimals).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    function renderAdvisorResults(data) {
+      const cs = data.params.currency === 'BRL' ? 'R$' : '$';
+      const arc = data.arc;
+
+      // Sort others by monthly cost
+      const otherKeys = ['spla','csp1y','csp3y','perpetual','ovs'];
+      const savingsMap = { spla:'vsSpla', csp1y:'vsCsp1y', csp3y:'vsCsp3y', perpetual:'vsPerpetual', ovs:'vsOvs' };
+      const sorted = otherKeys.map(k => ({ key: k, ...data[k] })).sort((a,b) => a.monthly - b.monthly);
+
+      let rows = '';
+      // ARC row
+      rows += `<tr class="recommended-row" style="border-radius:8px;">
+        <td class="font-bold">${arc.label}</td>
+        <td class="text-center">—</td>
+        <td class="text-right text-xs opacity-90">${cs} ${fmtNum(arc.unitPrice, 4)} /hora</td>
+        <td class="text-right font-semibold">${cs} ${fmtNum(arc.monthly, 2)}</td>
+        <td class="text-right">${cs} ${fmtNum(arc.annual, 2)}</td>
+        <td class="text-right">${cs} ${fmtNum(arc.total3y, 2)}</td>
+        <td class="text-right">—</td>
+      </tr>`;
+
+      sorted.forEach((m, i) => {
+        const sav = data.savings[savingsMap[m.key]] || { monthly: 0, pct: 0 };
+        const bg = i % 2 === 0 ? 'background:#f8fafc;' : '';
+        let savCell;
+        if (sav.pct > 0) {
+          savCell = `<span class="savings-positive">+${cs} ${fmtNum(sav.monthly, 2)}/mês (${fmtNum(sav.pct, 1)}%)</span>`;
+        } else if (sav.pct < 0) {
+          savCell = `<span class="savings-negative">${cs} ${fmtNum(sav.monthly, 2)}/mês (${fmtNum(sav.pct, 1)}%)</span>`;
+        } else {
+          savCell = '<span class="text-slate-400">0%</span>';
+        }
+        rows += `<tr style="${bg} border-bottom:1px solid #e2e8f0;">
+          <td class="font-medium text-slate-800">${m.label}</td>
+          <td class="text-center">${m.packs}</td>
+          <td class="text-right text-xs text-slate-500">${cs} ${fmtNum(m.unitPrice, 2)} /pack</td>
+          <td class="text-right">${cs} ${fmtNum(m.monthly, 2)}</td>
+          <td class="text-right">${cs} ${fmtNum(m.annual, 2)}</td>
+          <td class="text-right">${cs} ${fmtNum(m.total3y, 2)}</td>
+          <td class="text-right">${savCell}</td>
+        </tr>`;
+      });
+
+      let noteHtml = '';
+      if (data.bestModel !== 'arc') {
+        const bestLabel = data[data.bestModel]?.label || data.bestModel;
+        noteHtml = `<div class="mt-4 p-3 rounded-lg" style="background:#fef3c7;border:1px solid #fcd34d;">
+          <p class="text-sm text-amber-800"><strong>Nota:</strong> Para este cenário, o modelo mais econômico é <strong>${bestLabel}</strong>. Contudo, o Azure ARC oferece benefícios adicionais como virtualização ilimitada, sem compromisso e gestão via portal Azure.</p>
+        </div>`;
+      }
+
+      const html = `
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 p-6" style="animation:msgIn .3s ease-out;">
+          <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5" style="color:#005758;">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6"/>
+            </svg>
+            Comparativo de Custos — ${data.params.edition} (${data.params.vCores} vCores)
+          </h2>
+          <div class="overflow-x-auto">
+            <table class="w-full advisor-table">
+              <thead><tr class="border-b-2 border-slate-200">
+                <th class="text-slate-600">Modelo</th>
+                <th class="text-slate-600 text-center">Packs</th>
+                <th class="text-slate-600 text-right">Preço Unit.</th>
+                <th class="text-slate-600 text-right">Custo Mensal</th>
+                <th class="text-slate-600 text-right">Custo Anual</th>
+                <th class="text-slate-600 text-right">Total 3 Anos</th>
+                <th class="text-slate-600 text-right">Economia vs ARC</th>
+              </tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          ${noteHtml}
+          <div class="mt-6 p-4 bg-slate-50 border border-slate-200 rounded-lg shadow-sm">
+            <h3 class="text-sm font-bold text-teal-800 mb-2 border-b border-teal-100 pb-1">Dinâmica de Faturamento por Modelo (Atenção Comercial)</h3>
+            <ul class="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
+              <li><strong class="text-slate-800">Azure ARC (Recomendado):</strong> Cobrado mensalmente (Pay-As-You-Go) apenas pelos vCores consumidos por hora.</li>
+              <li><strong class="text-slate-800">SPLA:</strong> Faturamento pós-pago mensal recorrente. Licenciamento mínimo exigido em pacotes de 2 cores.</li>
+              <li><strong class="text-slate-800">CSP (1 e 3 Anos):</strong> Faturamento total antecipado (upfront) pelo período de contrato. Requer pacotes de 2 cores.</li>
+              <li><strong class="text-slate-800">Perpétuo + SA:</strong> Aquisição de licença definitiva (CapEx) com renovação anual do contrato de Software Assurance.</li>
+              <li><strong class="text-slate-800">OVS:</strong> Assinatura padronizada de valor anualizado (OpEx) que já inclui benefícios de Software Assurance.</li>
+            </ul>
+          </div>
+        </div>`;
+
+      document.getElementById('advisorResults').innerHTML = html;
+      document.getElementById('advisorResults').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      // Atualizar dados para PDF e mostrar botão
+      window.advisorData = data;
+      document.getElementById('btn-generate-advisor-pdf').style.display = 'flex';
+    }
+
+    // Submit via AJAX
+    document.getElementById('advisorForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById('btnSubmitAdvisor');
+      const icon = btn.querySelector('.adv-btn-icon');
+      const label = btn.querySelector('.adv-btn-label');
+      const origLabel = label.textContent;
+
+      // Loading state
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+      label.textContent = 'Calculando...';
+      icon.style.animation = 'spin 1s linear infinite';
+
+      const formData = new FormData(this);
+
+      fetch('sql-advisor.php', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+      })
+      .then(r => r.json())
+      .then(data => {
+        renderAdvisorResults(data);
+      })
+      .catch(err => {
+        console.error('Erro:', err);
+        document.getElementById('advisorResults').innerHTML =
+          '<div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">Erro ao calcular. Tente novamente.</div>';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        label.textContent = origLabel;
+        icon.style.animation = '';
+      });
+    });
+
+    // Renderizar resultado da sessão se existir
+    <?php if ($advisorResult): ?>
+    window.advisorData = <?php echo json_encode($advisorResult); ?>;
+    renderAdvisorResults(window.advisorData);
+    <?php endif; ?>
+
+    // ==================== PDF ADVISOR ====================
+    document.getElementById('btn-generate-advisor-pdf').addEventListener('click', function () {
+      if (!window.advisorData) {
+        alert('Dados não disponíveis. Execute o cálculo primeiro.');
+        return;
+      }
+      if (typeof generateAdvisorPDF !== 'function') {
+        alert('Erro: Função de geração de PDF não foi carregada.');
+        return;
+      }
+      generateAdvisorPDF(window.advisorData);
+    });
     let chatHistory = [];
     let chatAbortController = null;
     let isChatLoading = false;
@@ -1014,22 +1069,6 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
       sendChatMessage();
     }
 
-    // ==================== PDF ADVISOR ====================
-    const pdfBtn = document.getElementById('btn-generate-advisor-pdf');
-    if (pdfBtn) {
-      pdfBtn.addEventListener('click', function () {
-        if (!window.advisorData) {
-          alert('Dados não disponíveis. Execute o cálculo primeiro.');
-          return;
-        }
-        if (typeof generateAdvisorPDF !== 'function') {
-          alert('Erro: Função de geração de PDF não foi carregada. Verifique se o arquivo app.js foi carregado corretamente (F12 > Console).');
-          return;
-        }
-        console.log('Gerando PDF com dados:', window.advisorData);
-        generateAdvisorPDF(window.advisorData);
-      });
-    }
   </script>
 </body>
 </html>
