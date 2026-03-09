@@ -98,8 +98,74 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     /* ===== CHAT PANEL ===== */
-    .chat-wrap { position: sticky; top: 1rem; }
-    .chat-card { display: flex; flex-direction: column; height: calc(100vh - 2rem); max-height: 780px; background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 24px rgba(0,0,0,0.08); overflow: hidden; }
+    /* Chat começa recolhido em TODAS as telas */
+    .chat-wrap {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0,0,0,0);
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 0;
+      pointer-events: none;
+      transition: background 0.25s ease;
+    }
+    .chat-wrap.chat-open {
+      display: flex;
+      background: rgba(0,0,0,0.35);
+      pointer-events: all;
+      animation: fadeIn 0.2s ease;
+    }
+    /* Desktop: painel flutuante inferior-direito */
+    .chat-wrap.chat-open .chat-card {
+      position: fixed;
+      bottom: 0;
+      right: 24px;
+      width: 440px;
+      height: 640px;
+      max-height: calc(100vh - 40px);
+      border-radius: 16px 16px 0 0;
+      animation: slideUp 0.3s cubic-bezier(0.34,1.15,0.64,1);
+    }
+    .chat-card { display: flex; flex-direction: column; background: #fff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 8px 40px rgba(0,0,0,0.15); overflow: hidden; }
+    /* Botão fechar chat — visível sempre quando aberto */
+    #chatMobileClose {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.2);
+      cursor: pointer;
+      color: #fff;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    #chatMobileClose:hover { background: rgba(255,255,255,0.25); }
+    /* FAB — visível por padrão */
+    #chatFab {
+      display: flex;
+      position: fixed;
+      bottom: 22px;
+      right: 22px;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #002829 0%, #005758 100%);
+      border: none;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(0,87,88,0.45);
+      z-index: 999;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #chatFab:hover { box-shadow: 0 6px 28px rgba(0,87,88,0.6); transform: scale(1.05); }
+    #chatFab:active { transform: scale(0.93); }
+    #chatFab.chat-fab-hidden { display: none; }
     .chat-header { background: linear-gradient(135deg, #002829 0%, #005758 100%); padding: 16px 20px; flex-shrink: 0; }
     .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 20px; background: #f8fafc; }
     .chat-messages::-webkit-scrollbar { width: 6px; }
@@ -109,6 +175,8 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
     .msg-container { display: flex; flex-direction: column; max-width: 95%; animation: msgIn 0.25s ease-out; }
     @keyframes msgIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .msg-user { align-self: flex-end; align-items: flex-end; }
     .msg-assistant { align-self: flex-start; align-items: flex-start; }
     .chat-bubble-assistant { background: #fff; border: 1px solid #e8edf3; border-radius: 4px 16px 16px 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); padding: 14px 18px; font-size: 0.875rem; color: #1e293b; line-height: 1.7; }
@@ -392,23 +460,19 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
 
     /* ===== RESPONSIVE LAYOUT ===== */
     .adv-main-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 480px;
-      gap: 1.5rem;
-      align-items: start;
+      display: block;
+      max-width: 960px;
+      margin: 0 auto;
     }
 
-    /* Tablet: coluna única */
-    @media (max-width: 1024px) {
-      .adv-main-grid {
-        grid-template-columns: 1fr !important;
-      }
-      .chat-wrap {
-        position: static !important;
-      }
-      .chat-card {
-        height: 520px !important;
-        max-height: 520px !important;
+    /* Mobile: painel full-width bottom sheet */
+    @media (max-width: 768px) {
+      .chat-wrap.chat-open .chat-card {
+        right: 0 !important;
+        width: 100% !important;
+        height: 88vh !important;
+        max-height: 88vh !important;
+        border-radius: 20px 20px 0 0 !important;
       }
     }
 
@@ -474,12 +538,7 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
         font-size: 0.78rem !important;
       }
 
-      /* Chat */
-      .chat-card {
-        height: 450px !important;
-        max-height: 450px !important;
-        border-radius: 12px !important;
-      }
+      /* Chat internals (mobile adjustments) */
       .chat-header { padding: 12px 14px !important; }
       .chat-messages { padding: 14px !important; gap: 12px !important; }
       .chat-input-area { padding: 10px 12px 12px !important; }
@@ -495,6 +554,7 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
       .prompt-card { padding: 8px 10px !important; }
       .prompt-card-text { font-size: 0.68rem !important; }
       .prompt-card-icon { font-size: 0.95rem !important; }
+      #chatFab { bottom: 18px !important; right: 18px !important; width: 52px !important; height: 52px !important; }
 
       /* Disclaimer */
       .mt-6.p-4.bg-slate-50 { padding: 10px !important; }
@@ -509,7 +569,8 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
       .adv-form-body { padding: 10px !important; }
       .adv-form-header { padding: 8px 10px !important; }
       .adv-btn-submit { font-size: 12px !important; gap: 4px !important; }
-      .chat-card { height: 400px !important; max-height: 400px !important; }
+      .chat-wrap.chat-open .chat-card { height: 95vh !important; max-height: 95vh !important; }
+      #chatFab { bottom: 14px !important; right: 14px !important; width: 48px !important; height: 48px !important; }
     }
   </style>
 </head>
@@ -665,9 +726,14 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
                 <p style="color:rgba(153,246,228,0.8);font-size:0.7rem;margin-top:2px;font-weight:500;">TD SYNNEX · SQL Server 2022</p>
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:4px 10px;">
-              <div style="width:6px;height:6px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;"></div>
-              <span style="color:rgba(209,250,229,0.9);font-size:0.68rem;font-weight:600;letter-spacing:0.03em;">GPT-4o</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:4px 10px;">
+                <div style="width:6px;height:6px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px #4ade80;"></div>
+                <span style="color:rgba(209,250,229,0.9);font-size:0.68rem;font-weight:600;letter-spacing:0.03em;">GPT-4o</span>
+              </div>
+              <button id="chatMobileClose" aria-label="Fechar chat" title="Minimizar chat">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="white" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -736,6 +802,13 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
       </div> <!-- /chat-wrap -->
 
     </div><!-- /grid -->
+
+  <!-- Mobile floating chat button -->
+  <button id="chatFab" aria-label="Abrir chat especialista" title="Especialista em Licenciamento">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="white" style="width:26px;height:26px;">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+    </svg>
+  </button>
 
   <!-- jsPDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" async></script>
@@ -885,6 +958,42 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
     window.advisorData = <?php echo json_encode($advisorResult); ?>;
     renderAdvisorResults(window.advisorData);
     <?php endif; ?>
+
+    // ==================== CHAT TOGGLE (ALL SCREENS) ====================
+    (function () {
+      const fab = document.getElementById('chatFab');
+      const wrap = document.querySelector('.chat-wrap');
+      const closeBtn = document.getElementById('chatMobileClose');
+
+      function openChat() {
+        wrap.classList.add('chat-open');
+        fab.classList.add('chat-fab-hidden');
+        document.body.style.overflow = 'hidden';
+        const msgs = document.getElementById('chatMessages');
+        if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 50);
+      }
+
+      function closeChat() {
+        wrap.classList.remove('chat-open');
+        fab.classList.remove('chat-fab-hidden');
+        document.body.style.overflow = '';
+      }
+
+      if (fab) fab.addEventListener('click', openChat);
+      if (closeBtn) closeBtn.addEventListener('click', closeChat);
+
+      // Clique no backdrop (fora do card) fecha
+      if (wrap) {
+        wrap.addEventListener('click', function (e) {
+          if (e.target === wrap) closeChat();
+        });
+      }
+
+      // Esc fecha o chat
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && wrap && wrap.classList.contains('chat-open')) closeChat();
+      });
+    })();
 
     // ==================== PDF ADVISOR ====================
     document.getElementById('btn-generate-advisor-pdf').addEventListener('click', function () {
