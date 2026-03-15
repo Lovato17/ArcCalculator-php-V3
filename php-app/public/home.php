@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
             <img src="logo.png" alt="TD SYNNEX Logo" class="h-12 w-auto object-contain">
             <div>
                 <h1 class="text-2xl font-bold text-slate-900 tracking-tight">
-                    TD SYNNEX <span class="text-slate-400 font-light">Tools</span>
+                    Tools
                 </h1>
                 <p class="text-sm text-slate-500 font-medium">Ferramentas e Calculadoras</p>
             </div>
@@ -60,8 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
         <div class="flex items-center gap-6">
             <nav class="flex items-center gap-4">
                 <a href="home.php" class="text-sm font-medium text-blue-600 border-b-2 border-blue-600 pb-1">Home</a>
-                <a href="#migracao-azure" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Migração Azure</a>
-                <a href="index.php" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Calculadora ARC</a>
+                <a href="migracao-azure.php" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Migração Azure</a>
                 <a href="sql-advisor.php" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">SQL Advisor</a>
                 <a href="#cloud-partner-hub" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Cloud Partner HUB</a>
             </nav>
@@ -276,7 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
                 
                 <ul class="space-y-2">
                     <li>
-                        <a href="#" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                        <a href="migracao-azure.php" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                             </svg>
@@ -284,7 +283,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                        <a href="migracao-azure.php" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                             </svg>
@@ -292,7 +291,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                        <a href="migracao-azure.php" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                             </svg>
@@ -300,7 +299,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
+                        <a href="migracao-azure.php" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                             </svg>
@@ -311,33 +310,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
             </div>
         </div>
 
-        <!-- Card 2: Calculadora Azure ARC -->
-        <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-            <div class="p-6">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="p-3 rounded-lg" style="background-color: #d1fae5;">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6" style="color: #059669;">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V13.5Zm0 2.25h.008v.008H8.25v-.008Zm0 2.25h.008v.008H8.25V18Zm2.498-6.75h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V13.5Zm0 2.25h.007v.008h-.007v-.008Zm0 2.25h.007v.008h-.007V18Zm2.504-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5Zm0 2.25h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V18Zm2.498-6.75h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V13.5ZM8.25 6h7.5v2.25h-7.5V6ZM12 2.25c-1.892 0-3.758.11-5.593.322C5.307 2.7 4.5 3.65 4.5 4.757V19.5a2.25 2.25 0 0 0 2.25 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25V4.757c0-1.108-.806-2.057-1.907-2.185A48.507 48.507 0 0 0 12 2.25Z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-slate-800">Calculadora Azure ARC</h3>
-                </div>
-                <p class="text-slate-600 text-sm mb-4">Compare custos entre Azure ARC Pay-As-You-Go e licenciamento SPLA tradicional.</p>
-                
-                <ul class="space-y-2">
-                    <li>
-                        <a href="index.php" class="flex items-center gap-2 text-sm text-slate-700 hover:text-blue-600 p-2 rounded-lg hover:bg-slate-50 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                            </svg>
-                            SQL Server Standard / Enterprise
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Card 3: SQL Licensing Advisor -->
+        <!-- Card 2: SQL Licensing Advisor -->
         <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-xl transition-shadow duration-300 relative">
             <div class="absolute top-3 right-3">
                 <span class="px-2 py-0.5 text-xs font-bold text-white rounded-full" style="background: linear-gradient(135deg, #7c3aed, #a855f7);">NOVO</span>

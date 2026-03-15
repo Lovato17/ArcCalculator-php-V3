@@ -591,7 +591,7 @@ $currencySymbol = ($adv['currency'] ?? 'USD') === 'BRL' ? 'R$' : '$';
         <div class="flex items-center gap-6">
             <nav class="flex items-center gap-4">
                 <a href="home.php" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Home</a>
-                <a href="index.php" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Calculadora ARC</a>
+                <a href="migracao-azure.php" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">Migração Azure</a>
                 <a href="sql-advisor.php" class="text-sm font-medium text-blue-600 border-b-2 border-blue-600 pb-1">SQL Advisor</a>
             </nav>
         </div>

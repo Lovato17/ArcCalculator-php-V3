@@ -1,0 +1,11 @@
+/vendor/
+/uploads/*
+!/uploads/.gitkeep
+!/uploads/.htaccess
+/reports/*
+!/reports/.gitkeep
+!/reports/.htaccess
+*.log
+.env
+.DS_Store
+Thumbs.db
