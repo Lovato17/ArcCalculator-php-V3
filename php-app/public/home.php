@@ -355,6 +355,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_settings'])) {
             </div>
         </div>
 
+        <!-- Card 3: Migração M365 Tier 1 to Tier 2 -->
+        <div id="migracao-m365" class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-xl transition-shadow duration-300 relative">
+            <div class="absolute top-3 right-3">
+                <span class="px-2 py-0.5 text-xs font-bold text-white rounded-full" style="background: linear-gradient(135deg, #ea580c, #f97316);">EM BREVE</span>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="p-3 rounded-lg" style="background-color: #fff7ed;">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6" style="color: #ea580c;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800">Migração M365</h3>
+                </div>
+                <p class="text-slate-600 text-sm mb-4">Ferramenta para migração de assinaturas Microsoft 365 de Tier 1 para Tier 2 (Indirect Reseller).</p>
+                
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#" class="flex items-center gap-2 text-sm text-slate-700 hover:text-orange-600 p-2 rounded-lg hover:bg-orange-50 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                            Migração Tier 1 → Tier 2
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center gap-2 text-sm text-slate-700 hover:text-orange-600 p-2 rounded-lg hover:bg-orange-50 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                            Mapeamento de SKUs M365
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center gap-2 text-sm text-slate-700 hover:text-orange-600 p-2 rounded-lg hover:bg-orange-50 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                            Proposta Comercial M365
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
         <!-- Card 4: Cloud Partner HUB -->
         <div id="cloud-partner-hub" class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
             <div class="p-6">
