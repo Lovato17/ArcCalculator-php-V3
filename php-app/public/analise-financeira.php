@@ -28,48 +28,80 @@ $results = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? 'analyze';
 
-    if ($action === 'analyze' && isset($_FILES['file'])) {
-        $file = $_FILES['file'];
-        $ext  = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
+    if ($action === 'analyze') {
+        // Determinar a origem: upload direto (file) ou chunked (uploadId na sessão)
+        $tmpPath  = null;
+        $origName = '';
+        $fileOk   = false;
 
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            $error = 'Erro no upload: codigo ' . (int)$file['error'];
-        } elseif ($ext !== 'csv') {
-            $error = 'Apenas arquivos CSV sao suportados.';
-        } elseif ($file['size'] > 100 * 1024 * 1024) {
-            $error = 'Arquivo muito grande (maximo 100 MB).';
-        } else {
-            $tmpPath = $uploadDir . '/cost_' . uniqid() . '.csv';
-            if (!move_uploaded_file($file['tmp_name'], $tmpPath)) {
-                $error = 'Falha ao salvar arquivo temporario.';
-            } else {
-                set_time_limit(300);
-                $exchangeRate  = max(0.01, (float)($_POST['exchangeRate'] ?? 5.39));
-                $clientName    = htmlspecialchars(trim((string)($_POST['clientName']     ?? '')), ENT_QUOTES);
-                $refMonth      = htmlspecialchars(trim((string)($_POST['referenceMonth'] ?? '')), ENT_QUOTES);
-                $migrationType = in_array($_POST['migrationType'] ?? '', ['mosp_csp', 'mpn_csp'], true)
-                                 ? $_POST['migrationType'] : 'mosp_csp';
-                $qtyColumn     = $migrationType === 'mpn_csp' ? 'usagequantity' : 'quantity';
+        $uploadId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($_POST['uploadId'] ?? ''));
 
-                $analyzer    = new FinancialAnalyzer();
-                $parseResult = $analyzer->parseFile($tmpPath, $qtyColumn);
+        if ($uploadId !== '' && !empty($_SESSION['chunkedUpload']) && $_SESSION['chunkedUpload']['uploadId'] === $uploadId) {
+            // Chunked upload — arquivo já montado pelo upload-chunk.php
+            $chunked  = $_SESSION['chunkedUpload'];
+            $tmpPath  = $chunked['filePath'];
+            $origName = $chunked['fileName'];
+            unset($_SESSION['chunkedUpload']);
 
-                if (!$parseResult['success']) {
-                    $error = $parseResult['error'];
-                } else {
-                    $results = $analyzer->analyze($parseResult['data'], $exchangeRate);
-                    $results['clientName']     = $clientName;
-                    $results['referenceMonth'] = $refMonth;
-                    $results['migrationType']  = $migrationType;
-                    $results['filename']       = htmlspecialchars((string)$file['name'], ENT_QUOTES);
-                    $_SESSION['financialResults'] = $results;
-                    $cnt = $results['summary']['totalRows'];
-                    $uid = $results['summary']['uniqueMeterIds'];
-                    $success = "Analise concluida! {$cnt} linhas processadas, {$uid} MeterIDs unicos consultados na API.";
-                }
-
+            if (!file_exists($tmpPath)) {
+                $error = 'Arquivo montado nao encontrado. Tente novamente.';
+            } elseif (strtolower(pathinfo($origName, PATHINFO_EXTENSION)) !== 'csv') {
+                $error = 'Apenas arquivos CSV sao suportados.';
                 @unlink($tmpPath);
+            } else {
+                $fileOk = true;
             }
+        } elseif (isset($_FILES['file'])) {
+            // Upload direto (arquivo pequeno, sem chunks)
+            $file = $_FILES['file'];
+            $ext  = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
+
+            if ($file['error'] !== UPLOAD_ERR_OK) {
+                $error = 'Erro no upload: codigo ' . (int)$file['error'];
+            } elseif ($ext !== 'csv') {
+                $error = 'Apenas arquivos CSV sao suportados.';
+            } elseif ($file['size'] > 200 * 1024 * 1024) {
+                $error = 'Arquivo muito grande (maximo 200 MB).';
+            } else {
+                $tmpPath  = $uploadDir . '/cost_' . uniqid() . '.csv';
+                $origName = (string)$file['name'];
+                if (!move_uploaded_file($file['tmp_name'], $tmpPath)) {
+                    $error = 'Falha ao salvar arquivo temporario.';
+                } else {
+                    $fileOk = true;
+                }
+            }
+        } else {
+            $error = 'Nenhum arquivo recebido. Selecione um CSV.';
+        }
+
+        if ($fileOk && $tmpPath) {
+            set_time_limit(300);
+            $exchangeRate  = max(0.01, (float)($_POST['exchangeRate'] ?? 5.39));
+            $clientName    = htmlspecialchars(trim((string)($_POST['clientName']     ?? '')), ENT_QUOTES);
+            $refMonth      = htmlspecialchars(trim((string)($_POST['referenceMonth'] ?? '')), ENT_QUOTES);
+            $migrationType = in_array($_POST['migrationType'] ?? '', ['mosp_csp', 'mpn_csp'], true)
+                             ? $_POST['migrationType'] : 'mosp_csp';
+            $qtyColumn     = $migrationType === 'mpn_csp' ? 'usagequantity' : 'quantity';
+
+            $analyzer    = new FinancialAnalyzer();
+            $parseResult = $analyzer->parseFile($tmpPath, $qtyColumn);
+
+            if (!$parseResult['success']) {
+                $error = $parseResult['error'];
+            } else {
+                $results = $analyzer->analyze($parseResult['data'], $exchangeRate);
+                $results['clientName']     = $clientName;
+                $results['referenceMonth'] = $refMonth;
+                $results['migrationType']  = $migrationType;
+                $results['filename']       = htmlspecialchars($origName, ENT_QUOTES);
+                $_SESSION['financialResults'] = $results;
+                $cnt = $results['summary']['totalRows'];
+                $uid = $results['summary']['uniqueMeterIds'];
+                $success = "Analise concluida! {$cnt} linhas processadas, {$uid} MeterIDs unicos consultados na API.";
+            }
+
+            @unlink($tmpPath);
         }
     } elseif ($action === 'export_csv') {
         $results = $_SESSION['financialResults'] ?? null;
@@ -217,6 +249,8 @@ function diffBg(float $v): string    { return $v < -0.001 ? 'var(--td-green-ligh
         .col-resize-handle:hover, .col-resize-handle.active {
             background:rgba(255,255,255,0.35);
         }
+        @keyframes spin-anim { to { transform:rotate(360deg); } }
+        .spin-icon { animation:spin-anim 1s linear infinite; display:inline-block; }
     </style>
 </head>
 <body>
@@ -290,6 +324,7 @@ function diffBg(float $v): string    { return $v < -0.001 ? 'var(--td-green-ligh
                 <div class="card-body p-3">
                     <form method="POST" enctype="multipart/form-data" id="uploadForm">
                         <input type="hidden" name="action" value="analyze">
+                        <input type="hidden" name="uploadId" id="uploadIdField" value="">
 
                         <!-- Tipo de Migração -->
                         <div class="mb-3" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;">
@@ -336,6 +371,15 @@ function diffBg(float $v): string    { return $v < -0.001 ? 'var(--td-green-ligh
                         <button type="submit" class="btn btn-teal btn-sm w-100" id="analyzeBtn" disabled>
                             <i class="bi bi-search me-1"></i>Calcular Custos CSP
                         </button>
+
+                        <!-- Progress bar de upload chunked -->
+                        <div id="uploadProgress" class="d-none mt-2">
+                            <div style="background:#e2e8f0;border-radius:6px;height:22px;overflow:hidden;position:relative;">
+                                <div id="uploadProgressBar" style="background:linear-gradient(90deg,#005758,#0097D7);height:100%;width:0%;border-radius:6px;transition:width .2s;"></div>
+                                <span id="uploadProgressText" style="position:absolute;top:0;left:0;right:0;text-align:center;font-size:.72rem;font-weight:700;color:#fff;line-height:22px;">0%</span>
+                            </div>
+                            <div id="uploadProgressDetail" style="font-size:.72rem;color:#64748b;margin-top:4px;text-align:center;"></div>
+                        </div>
                     </form>
 
                     <hr style="margin:14px 0;">
@@ -825,6 +869,73 @@ function updateMigrationHint() {
     hint.style.color = isMpn ? '#7c3aed' : '#64748b';
 }
 
+// ============================================================
+// CHUNKED UPLOAD — envia arquivo em pedaços de 2 MB
+// Bypassa qualquer limite de Nginx / IIS / proxy
+// ============================================================
+const CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB por chunk
+
+function generateUploadId() {
+    return 'up_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+}
+
+async function uploadChunked(file) {
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+    const uploadId    = generateUploadId();
+
+    const progressDiv  = document.getElementById('uploadProgress');
+    const progressBar  = document.getElementById('uploadProgressBar');
+    const progressText = document.getElementById('uploadProgressText');
+    const progressDet  = document.getElementById('uploadProgressDetail');
+
+    progressDiv.classList.remove('d-none');
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+    progressDet.textContent = `Enviando ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB) em ${totalChunks} parte(s)...`;
+
+    for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end   = Math.min(start + CHUNK_SIZE, file.size);
+        const blob  = file.slice(start, end);
+
+        const fd = new FormData();
+        fd.append('chunk', blob, 'chunk');
+        fd.append('chunkIndex',  String(i));
+        fd.append('totalChunks', String(totalChunks));
+        fd.append('uploadId',    uploadId);
+        fd.append('fileName',    file.name);
+
+        let retries = 0;
+        let resp;
+        while (retries < 3) {
+            try {
+                resp = await fetch('upload-chunk.php', { method: 'POST', body: fd });
+                if (resp.ok) break;
+            } catch (e) { /* retry */ }
+            retries++;
+            await new Promise(r => setTimeout(r, 1000 * retries));
+        }
+
+        if (!resp || !resp.ok) {
+            const errText = resp ? await resp.text() : 'Sem resposta do servidor';
+            throw new Error(`Falha no chunk ${i + 1}/${totalChunks}: ${errText}`);
+        }
+
+        const data = await resp.json();
+        if (!data.ok) {
+            throw new Error(data.error || `Erro no chunk ${i + 1}`);
+        }
+
+        const pct = Math.round(((i + 1) / totalChunks) * 100);
+        progressBar.style.width = pct + '%';
+        progressText.textContent = pct + '%';
+        progressDet.textContent = `Parte ${i + 1} de ${totalChunks} enviada (${(end / 1024 / 1024).toFixed(1)} MB)`;
+    }
+
+    progressDet.textContent = 'Upload concluido! Iniciando analise...';
+    return uploadId;
+}
+
 function handleFile(input) {
     const file = input.files[0];
     if (!file) return;
@@ -833,6 +944,51 @@ function handleFile(input) {
     document.getElementById('analyzeBtn').disabled = false;
     document.querySelector('.upload-zone').style.borderColor = 'var(--td-teal)';
 }
+
+// Interceptar submit do formulário
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('uploadForm');
+    if (!form) return;
+
+    form.addEventListener('submit', async function(e) {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput?.files?.[0];
+
+        // Se não tem arquivo, deixa o form submeter normalmente (pode ser ação sem upload)
+        if (!file) return;
+
+        // Impede o submit padrão
+        e.preventDefault();
+
+        const btn = document.getElementById('analyzeBtn');
+        const progressDiv = document.getElementById('uploadProgress');
+        const progressDet = document.getElementById('uploadProgressDetail');
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Enviando...';
+
+        try {
+            const uploadId = await uploadChunked(file);
+
+            // Colocar o uploadId no form e limpar o file input para não enviar via multipart
+            document.getElementById('uploadIdField').value = uploadId;
+
+            // Remover o file para evitar que o form tente enviar o arquivo grande
+            fileInput.value = '';
+
+            btn.innerHTML = '<i class="bi bi-gear me-1 spin-icon"></i>Processando API...';
+            if (progressDet) progressDet.textContent = 'Upload concluido! Processando analise na API Microsoft...';
+
+            // Submeter o form normalmente (agora sem o arquivo, apenas com uploadId)
+            form.submit();
+        } catch (err) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-search me-1"></i>Calcular Custos CSP';
+            progressDiv.classList.add('d-none');
+            alert('Erro no upload: ' + err.message);
+        }
+    });
+});
 
 // Drag-and-drop
 const dz = document.getElementById('dropZone');
