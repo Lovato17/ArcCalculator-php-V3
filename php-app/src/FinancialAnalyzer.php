@@ -18,18 +18,19 @@ class FinancialAnalyzer
 
     /**
      * Faz o parse do arquivo CSV exportado do Cost Management.
+     * @param string $qtyColumn  Coluna de quantidade: 'quantity' (MOSP) ou 'usagequantity' (MPN)
      * Retorna ['success' => bool, 'data' => array, 'error' => string|null]
      */
-    public function parseFile(string $path): array
+    public function parseFile(string $path, string $qtyColumn = 'quantity'): array
     {
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
         if ($ext !== 'csv') {
             return ['success' => false, 'error' => 'Apenas arquivos CSV sao suportados.', 'data' => []];
         }
-        return $this->parseCsv($path);
+        return $this->parseCsv($path, $qtyColumn);
     }
 
-    private function parseCsv(string $path): array
+    private function parseCsv(string $path, string $qtyColumn = 'quantity'): array
     {
         $fh = fopen($path, 'r');
         if (!$fh) {
@@ -59,12 +60,13 @@ class FinancialAnalyzer
         $headers = array_map(fn($h) => strtolower(trim((string)$h)), $raw);
 
         // Valida colunas obrigatorias
-        foreach (['meterid', 'quantity'] as $required) {
+        foreach (['meterid', $qtyColumn] as $required) {
             if (!in_array($required, $headers, true)) {
                 fclose($fh);
+                $label = $required === 'usagequantity' ? 'UsageQuantity (MPN)' : $required;
                 return [
                     'success' => false,
-                    'error'   => "Coluna obrigatoria \"{$required}\" nao encontrada. Verifique se o arquivo segue o schema MCA 2019-11-01.",
+                    'error'   => "Coluna obrigatoria \"{$label}\" nao encontrada. Verifique se o arquivo e o tipo de migracao selecionado estao corretos.",
                     'data'    => [],
                 ];
             }
@@ -81,7 +83,7 @@ class FinancialAnalyzer
             }
 
             $meterId  = trim($r['meterid'] ?? '');
-            $quantity = (float)($r['quantity'] ?? 0);
+            $quantity = (float)($r[$qtyColumn] ?? 0);
             if ($meterId === '' || $quantity <= 0) {
                 continue;
             }

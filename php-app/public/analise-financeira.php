@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 session_start();
+// Helpers de tipo de migracao
+function migrationLabel(string $type): string {
+    return $type === 'mpn_csp' ? 'MPN → CSP' : 'MOSP → CSP';
+}
+function migrationQtyLabel(string $type): string {
+    return $type === 'mpn_csp' ? 'UsageQuantity' : 'Quantity';
+}
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
@@ -37,12 +44,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'Falha ao salvar arquivo temporario.';
             } else {
                 set_time_limit(300);
-                $exchangeRate = max(0.01, (float)($_POST['exchangeRate'] ?? 5.39));
-                $clientName   = htmlspecialchars(trim((string)($_POST['clientName']      ?? '')), ENT_QUOTES);
-                $refMonth     = htmlspecialchars(trim((string)($_POST['referenceMonth']  ?? '')), ENT_QUOTES);
+                $exchangeRate  = max(0.01, (float)($_POST['exchangeRate'] ?? 5.39));
+                $clientName    = htmlspecialchars(trim((string)($_POST['clientName']     ?? '')), ENT_QUOTES);
+                $refMonth      = htmlspecialchars(trim((string)($_POST['referenceMonth'] ?? '')), ENT_QUOTES);
+                $migrationType = in_array($_POST['migrationType'] ?? '', ['mosp_csp', 'mpn_csp'], true)
+                                 ? $_POST['migrationType'] : 'mosp_csp';
+                $qtyColumn     = $migrationType === 'mpn_csp' ? 'usagequantity' : 'quantity';
 
                 $analyzer    = new FinancialAnalyzer();
-                $parseResult = $analyzer->parseFile($tmpPath);
+                $parseResult = $analyzer->parseFile($tmpPath, $qtyColumn);
 
                 if (!$parseResult['success']) {
                     $error = $parseResult['error'];
@@ -50,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $results = $analyzer->analyze($parseResult['data'], $exchangeRate);
                     $results['clientName']     = $clientName;
                     $results['referenceMonth'] = $refMonth;
+                    $results['migrationType']  = $migrationType;
                     $results['filename']       = htmlspecialchars((string)$file['name'], ENT_QUOTES);
                     $_SESSION['financialResults'] = $results;
                     $cnt = $results['summary']['totalRows'];
@@ -235,13 +246,24 @@ function diffBg(float $v): string    { return $v < -0.001 ? 'var(--td-green-ligh
         </ol>
     </nav>
 
+    <?php
+        $activeMigType = $results['migrationType'] ?? 'mosp_csp';
+        $activeMigLabel = migrationLabel($activeMigType);
+        $activeQtyLabel = migrationQtyLabel($activeMigType);
+    ?>
     <div class="mb-4 d-flex align-items-center gap-3">
         <div style="background:#ccfbf1;padding:10px;border-radius:8px;">
             <i class="bi bi-cash-coin" style="color:var(--td-teal);font-size:1.4rem;"></i>
         </div>
         <div>
-            <h2 class="mb-0" style="font-size:1.5rem;font-weight:700;color:#1e293b;">Analise Financeira de Migracao MOSP &rarr; CSP</h2>
-            <p class="mb-0" style="font-size:.85rem;color:#64748b;">Upload do export do Cost Management e comparativo de custos via API publica da Microsoft.</p>
+            <h2 class="mb-0" style="font-size:1.5rem;font-weight:700;color:#1e293b;">
+                Analise Financeira de Migracao
+                <span style="color:var(--td-teal);"><?= htmlspecialchars($activeMigLabel) ?></span>
+            </h2>
+            <p class="mb-0" style="font-size:.85rem;color:#64748b;">
+                Upload do export do Cost Management e comparativo de custos via API publica da Microsoft.
+                <span style="color:var(--td-teal);font-weight:600;">Coluna de quantidade: <?= htmlspecialchars($activeQtyLabel) ?></span>
+            </p>
         </div>
     </div>
 
@@ -268,6 +290,20 @@ function diffBg(float $v): string    { return $v < -0.001 ? 'var(--td-green-ligh
                 <div class="card-body p-3">
                     <form method="POST" enctype="multipart/form-data" id="uploadForm">
                         <input type="hidden" name="action" value="analyze">
+
+                        <!-- Tipo de Migração -->
+                        <div class="mb-3" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;">
+                            <label class="form-label" style="font-size:.82rem;font-weight:700;color:#005758;margin-bottom:6px;display:flex;align-items:center;gap:5px;">
+                                <i class="bi bi-arrow-left-right"></i> Tipo de Migração
+                            </label>
+                            <select class="form-select form-select-sm" name="migrationType" id="migrationType" onchange="updateMigrationHint()">
+                                <option value="mosp_csp" <?= ($results['migrationType'] ?? 'mosp_csp') === 'mosp_csp' ? 'selected' : '' ?>>MOSP → CSP (Pay-As-You-Go)</option>
+                                <option value="mpn_csp"  <?= ($results['migrationType'] ?? '') === 'mpn_csp'  ? 'selected' : '' ?>>MPN → CSP (via Benefício MPN)</option>
+                            </select>
+                            <div id="migrationHint" style="font-size:.72rem;color:#64748b;margin-top:5px;">
+                                Coluna de quantidade: <code id="migrationQtyCol"><?= ($results['migrationType'] ?? 'mosp_csp') === 'mpn_csp' ? 'UsageQuantity' : 'Quantity' ?></code>
+                            </div>
+                        </div>
 
                         <div class="mb-3">
                             <label class="form-label" style="font-size:.82rem;font-weight:600;color:#374151;">Cliente (opcional)</label>
@@ -357,6 +393,9 @@ function diffBg(float $v): string    { return $v < -0.001 ? 'var(--td-green-ligh
 
             <!-- Info bar -->
             <div class="d-flex flex-wrap align-items-center gap-2 mb-3" style="font-size:.82rem;color:#64748b;">
+                <span style="background:#f0fdf4;color:#005758;font-weight:600;padding:2px 8px;border-radius:12px;font-size:.76rem;border:1px solid #bbf7d0;">
+                    <i class="bi bi-arrow-left-right me-1"></i><?= htmlspecialchars($activeMigLabel) ?>
+                </span>
                 <?php if ($results['clientName']): ?>
                 <span><i class="bi bi-building me-1"></i><strong><?= htmlspecialchars($results['clientName']) ?></strong></span>
                 <?php endif; ?>
@@ -776,6 +815,16 @@ function diffBg(float $v): string    { return $v < -0.001 ? 'var(--td-green-ligh
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+function updateMigrationHint() {
+    const sel = document.getElementById('migrationType');
+    const col = document.getElementById('migrationQtyCol');
+    const hint = document.getElementById('migrationHint');
+    if (!sel || !col) return;
+    const isMpn = sel.value === 'mpn_csp';
+    col.textContent = isMpn ? 'UsageQuantity' : 'Quantity';
+    hint.style.color = isMpn ? '#7c3aed' : '#64748b';
+}
+
 function handleFile(input) {
     const file = input.files[0];
     if (!file) return;
@@ -958,6 +1007,8 @@ const pdfData = <?= json_encode([
     'referenceMonth' => $results['referenceMonth'] ?? '',
     'filename'       => $results['filename']       ?? '',
     'exchangeRate'   => (float)($results['summary']['exchangeRate'] ?? 5.39),
+    'migrationType'  => $results['migrationType']  ?? 'mosp_csp',
+    'migrationLabel' => migrationLabel($results['migrationType'] ?? 'mosp_csp'),
     'summary' => [
         'totalRows'       => $results['summary']['totalRows'],
         'uniqueMeterIds'  => $results['summary']['uniqueMeterIds'],
@@ -1132,7 +1183,7 @@ function _doGerarPDF() {
     doc.setFont('helvetica', 'bold');
     doc.text('Analise Financeira', ML + 8, 118);
     doc.setFontSize(22);
-    doc.text('MOSP para Azure CSP', ML + 8, 131);
+    doc.text(pdfData.migrationLabel || 'MOSP para Azure CSP', ML + 8, 131);
 
     doc.setFontSize(12); doc.setTextColor(...GRAY);
     doc.setFont('helvetica', 'normal');
