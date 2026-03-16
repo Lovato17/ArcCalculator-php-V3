@@ -873,7 +873,7 @@ function updateMigrationHint() {
 // CHUNKED UPLOAD — envia arquivo em pedaços de 2 MB
 // Bypassa qualquer limite de Nginx / IIS / proxy
 // ============================================================
-const CHUNK_SIZE = 2 * 1024 * 1024; // 2 MB por chunk
+const CHUNK_SIZE = 512 * 1024; // 512 KB por chunk — abaixo do limite padrão Nginx (1 MB)
 
 function generateUploadId() {
     return 'up_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
