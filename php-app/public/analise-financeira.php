@@ -36,23 +36,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $uploadId = preg_replace('/[^a-zA-Z0-9_-]/', '', (string)($_POST['uploadId'] ?? ''));
 
-        if ($uploadId !== '' && !empty($_SESSION['chunkedUpload']) && $_SESSION['chunkedUpload']['uploadId'] === $uploadId) {
-            // Chunked upload — arquivo já montado pelo upload-chunk.php
-            $chunked  = $_SESSION['chunkedUpload'];
-            $tmpPath  = $chunked['filePath'];
-            $origName = $chunked['fileName'];
-            unset($_SESSION['chunkedUpload']);
-
-            if (!file_exists($tmpPath)) {
-                $error = 'Arquivo montado nao encontrado. Tente novamente.';
-            } elseif (strtolower(pathinfo($origName, PATHINFO_EXTENSION)) !== 'csv') {
-                $error = 'Apenas arquivos CSV sao suportados.';
-                @unlink($tmpPath);
+        if ($uploadId !== '') {
+            // ── CHUNKED UPLOAD ──
+            // 1) Tentar sessão
+            if (!empty($_SESSION['chunkedUpload']) && $_SESSION['chunkedUpload']['uploadId'] === $uploadId) {
+                $chunked  = $_SESSION['chunkedUpload'];
+                $tmpPath  = $chunked['filePath'];
+                $origName = $chunked['fileName'];
+                unset($_SESSION['chunkedUpload']);
             } else {
-                $fileOk = true;
+                // 2) Fallback: procurar arquivo pelo uploadId no disco (sessão pode ter sido perdida)
+                $candidatePath = $uploadDir . '/cost_' . $uploadId . '.csv';
+                if (file_exists($candidatePath)) {
+                    $tmpPath  = $candidatePath;
+                    $origName = (string)($_POST['fileName'] ?? 'upload.csv');
+                }
             }
-        } elseif (isset($_FILES['file'])) {
-            // Upload direto (arquivo pequeno, sem chunks)
+
+            if ($tmpPath && file_exists($tmpPath)) {
+                if (strtolower(pathinfo($origName, PATHINFO_EXTENSION)) !== 'csv') {
+                    $error = 'Apenas arquivos CSV sao suportados.';
+                    @unlink($tmpPath);
+                } else {
+                    $fileOk = true;
+                }
+            } else {
+                $error = 'Arquivo do upload chunked nao encontrado (uploadId: ' . htmlspecialchars($uploadId) . '). Tente novamente.';
+            }
+        } elseif (isset($_FILES['file']) && $_FILES['file']['error'] !== UPLOAD_ERR_NO_FILE) {
+            // ── UPLOAD DIRETO (arquivo pequeno, sem chunks) ──
             $file = $_FILES['file'];
             $ext  = strtolower(pathinfo((string)$file['name'], PATHINFO_EXTENSION));
 
@@ -325,6 +337,7 @@ function diffBg(float $v): string    { return $v < -0.001 ? 'var(--td-green-ligh
                     <form method="POST" enctype="multipart/form-data" id="uploadForm">
                         <input type="hidden" name="action" value="analyze">
                         <input type="hidden" name="uploadId" id="uploadIdField" value="">
+                        <input type="hidden" name="fileName" id="fileNameField" value="">
 
                         <!-- Tipo de Migração -->
                         <div class="mb-3" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;">
@@ -972,8 +985,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Colocar o uploadId no form e limpar o file input para não enviar via multipart
             document.getElementById('uploadIdField').value = uploadId;
+            document.getElementById('fileNameField').value = file.name;
 
-            // Remover o file para evitar que o form tente enviar o arquivo grande
+            // Desabilitar e limpar o file input — evita que o browser envie o arquivo grande
+            fileInput.disabled = true;
             fileInput.value = '';
 
             btn.innerHTML = '<i class="bi bi-gear me-1 spin-icon"></i>Processando API...';
